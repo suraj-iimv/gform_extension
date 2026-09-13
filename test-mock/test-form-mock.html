@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mock Google Form — Test Harness</title>
+  <style>
+    :root {
+      --primary: #673ab7;
+      --bg: #ede7f6;
+      --card-bg: #ffffff;
+      --text: #202124;
+      --secondary-text: #70757a;
+      --border: #dadce0;
+      --error: #d93025;
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: Roboto, Arial, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      margin: 0;
+      padding: 24px 16px;
+      display: flex;
+      justify-content: center;
+    }
+    .form-container {
+      width: 100%;
+      max-width: 640px;
+    }
+    .header-card {
+      background: var(--card-bg);
+      border-radius: 8px;
+      border-top: 10px solid var(--primary);
+      padding: 24px;
+      margin-bottom: 12px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+    }
+    .header-card h1 {
+      margin: 0 0 8px 0;
+      font-size: 24px;
+    }
+    .header-card p {
+      margin: 0;
+      color: var(--secondary-text);
+      font-size: 14px;
+    }
+    .required-notice {
+      color: var(--error);
+      font-size: 13px;
+      margin-top: 12px;
+    }
+    .question-card {
+      background: var(--card-bg);
+      border-radius: 8px;
+      padding: 24px;
+      margin-bottom: 12px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+      border: 1px solid transparent;
+      transition: border-color 0.2s;
+    }
+    .question-card:focus-within {
+      border-color: var(--primary);
+    }
+    .question-title {
+      font-size: 16px;
+      font-weight: 500;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .required-star {
+      color: var(--error);
+    }
+    /* Controls styling matching Google Forms semantics */
+    .radio-option, .checkbox-option {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 8px 0;
+      cursor: pointer;
+      user-select: none;
+    }
+    .custom-control {
+      width: 20px;
+      height: 20px;
+      border: 2px solid #5f6368;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+    }
+    .custom-control.checkbox-box {
+      border-radius: 3px;
+    }
+    [role="radio"][aria-checked="true"] .custom-control {
+      border-color: var(--primary);
+      background: transparent;
+    }
+    [role="radio"][aria-checked="true"] .custom-control::after {
+      content: '';
+      width: 10px;
+      height: 10px;
+      background: var(--primary);
+      border-radius: 50%;
+    }
+    [role="checkbox"][aria-checked="true"] .custom-control {
+      border-color: var(--primary);
+      background: var(--primary);
+    }
+    [role="checkbox"][aria-checked="true"] .custom-control::after {
+      content: '✓';
+      color: white;
+      font-size: 14px;
+      font-weight: bold;
+    }
+    .dropdown-container select {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      font-size: 14px;
+      background: white;
+      cursor: pointer;
+    }
+    .scale-container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px 8px;
+    }
+    .scale-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+    }
+    .scale-label {
+      font-size: 12px;
+      color: var(--secondary-text);
+    }
+    .text-input, .textarea-input {
+      width: 100%;
+      padding: 8px 0;
+      border: none;
+      border-bottom: 1px solid var(--border);
+      font-size: 14px;
+      font-family: inherit;
+      outline: none;
+      transition: border-bottom-color 0.2s;
+    }
+    .text-input:focus, .textarea-input:focus {
+      border-bottom: 2px solid var(--primary);
+    }
+    .actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 20px;
+    }
+    .btn-submit {
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 4px;
+      padding: 10px 24px;
+      font-weight: 500;
+      font-size: 14px;
+      cursor: pointer;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    }
+    .btn-submit:hover {
+      background: #5e35b1;
+    }
+    .btn-clear {
+      background: none;
+      border: none;
+      color: var(--primary);
+      font-size: 14px;
+      cursor: pointer;
+    }
+    /* Confirmation view */
+    #confirmationView {
+      display: none;
+      background: var(--card-bg);
+      border-radius: 8px;
+      border-top: 10px solid var(--primary);
+      padding: 24px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+    }
+    .confirmation-msg {
+      font-size: 18px;
+      margin-bottom: 16px;
+    }
+    .link-fresh {
+      color: #1a73e8;
+      text-decoration: underline;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    .stats-overlay {
+      position: fixed;
+      bottom: 16px;
+      right: 16px;
+      background: rgba(32, 33, 36, 0.9);
+      color: #fff;
+      padding: 12px 18px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-family: monospace;
+      z-index: 1000;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="form-container" id="formView">
+    <div class="header-card">
+      <h1 id="formTitle">Customer Satisfaction & Feedback Survey (Mock)</h1>
+      <p>Automated Mock Form for Google Form Auto-Filler Extension Testing</p>
+      <div class="required-notice">* Indicates required question</div>
+    </div>
+
+    <!-- Question 1: Radio / Multiple Choice (Required) -->
+    <div class="question-card Qr7Oae" role="listitem" data-question-id="q1">
+      <div class="question-title" role="heading" aria-level="2">
+        <span>How often do you use our developer tools?</span>
+        <span class="required-star" aria-label="Required">*</span>
+      </div>
+      <div role="radiogroup" aria-required="true" aria-label="How often do you use our developer tools?">
+        <div class="radio-option" role="radio" aria-checked="false" tabindex="0" data-value="daily">
+          <div class="custom-control"></div>
+          <span class="option-label">Daily</span>
+        </div>
+        <div class="radio-option" role="radio" aria-checked="false" tabindex="0" data-value="weekly">
+          <div class="custom-control"></div>
+          <span class="option-label">Weekly</span>
+        </div>
+        <div class="radio-option" role="radio" aria-checked="false" tabindex="0" data-value="monthly">
+          <div class="custom-control"></div>
+          <span class="option-label">Monthly</span>
+        </div>
+        <div class="radio-option" role="radio" aria-checked="false" tabindex="0" data-value="rarely">
+          <div class="custom-control"></div>
+          <span class="option-label">Rarely</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Question 2: Checkboxes (Multiple Selection) (Required) -->
+    <div class="question-card Qr7Oae" role="listitem" data-question-id="q2">
+      <div class="question-title" role="heading" aria-level="2">
+        <span>Which platforms do you build for?</span>
+        <span class="required-star" aria-label="Required">*</span>
+      </div>
+      <div role="group" aria-required="true" aria-label="Which platforms do you build for?">
+        <div class="checkbox-option" role="checkbox" aria-checked="false" tabindex="0" data-value="chrome">
+          <div class="custom-control checkbox-box"></div>
+          <span class="option-label">Chrome Extension</span>
+        </div>
+        <div class="checkbox-option" role="checkbox" aria-checked="false" tabindex="0" data-value="web">
+          <div class="custom-control checkbox-box"></div>
+          <span class="option-label">Web / PWA</span>
+        </div>
+        <div class="checkbox-option" role="checkbox" aria-checked="false" tabindex="0" data-value="mobile">
+          <div class="custom-control checkbox-box"></div>
+          <span class="option-label">Mobile (iOS / Android)</span>
+        </div>
+        <div class="checkbox-option" role="checkbox" aria-checked="false" tabindex="0" data-value="backend">
+          <div class="custom-control checkbox-box"></div>
+          <span class="option-label">Cloud Backend / APIs</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Question 3: Dropdown / Listbox (Optional) -->
+    <div class="question-card Qr7Oae" role="listitem" data-question-id="q3">
+      <div class="question-title" role="heading" aria-level="2">
+        <span>Preferred programming environment</span>
+      </div>
+      <div class="dropdown-container">
+        <select role="listbox" aria-label="Preferred programming environment" id="envSelect">
+          <option value="" disabled selected>Choose</option>
+          <option value="vscode">VS Code</option>
+          <option value="jetbrains">JetBrains IDEs</option>
+          <option value="neovim">Neovim / Vim</option>
+          <option value="antigravity">Antigravity Studio</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Question 4: Linear Scale (1 to 5) (Required) -->
+    <div class="question-card Qr7Oae" role="listitem" data-question-id="q4">
+      <div class="question-title" role="heading" aria-level="2">
+        <span>Overall satisfaction rating</span>
+        <span class="required-star" aria-label="Required">*</span>
+      </div>
+      <div class="scale-container" role="radiogroup" aria-required="true" aria-label="Overall satisfaction rating">
+        <span class="scale-label">Very Dissatisfied</span>
+        <div class="scale-item" role="radio" aria-checked="false" tabindex="0" data-value="1">
+          <span>1</span>
+          <div class="custom-control"></div>
+        </div>
+        <div class="scale-item" role="radio" aria-checked="false" tabindex="0" data-value="2">
+          <span>2</span>
+          <div class="custom-control"></div>
+        </div>
+        <div class="scale-item" role="radio" aria-checked="false" tabindex="0" data-value="3">
+          <span>3</span>
+          <div class="custom-control"></div>
+        </div>
+        <div class="scale-item" role="radio" aria-checked="false" tabindex="0" data-value="4">
+          <span>4</span>
+          <div class="custom-control"></div>
+        </div>
+        <div class="scale-item" role="radio" aria-checked="false" tabindex="0" data-value="5">
+          <span>5</span>
+          <div class="custom-control"></div>
+        </div>
+        <span class="scale-label">Very Satisfied</span>
+      </div>
+    </div>
+
+    <!-- Question 5: Text / Short Answer (Optional) -->
+    <div class="question-card Qr7Oae" role="listitem" data-question-id="q5">
+      <div class="question-title" role="heading" aria-level="2">
+        <span>Your developer role / title</span>
+      </div>
+      <div>
+        <input type="text" class="text-input" aria-label="Your developer role / title" placeholder="Your answer">
+      </div>
+    </div>
+
+    <!-- Question 6: Text / Paragraph (Optional) -->
+    <div class="question-card Qr7Oae" role="listitem" data-question-id="q6">
+      <div class="question-title" role="heading" aria-level="2">
+        <span>Additional comments or feedback</span>
+      </div>
+      <div>
+        <textarea class="textarea-input" rows="2" aria-label="Additional comments or feedback" placeholder="Your answer"></textarea>
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="actions">
+      <div role="button" class="btn-submit" id="submitBtn" tabindex="0" aria-label="Submit">Submit</div>
+      <button type="button" class="btn-clear" id="clearBtn">Clear form</button>
+    </div>
+  </div>
+
+  <!-- Confirmation Screen View -->
+  <div class="form-container" id="confirmationView">
+    <div class="confirmation-msg freebirdFormviewerViewResponseConfirmationMessage" role="heading" aria-level="1">
+      Your response has been recorded.
+    </div>
+    <div class="c2gzKc">
+      <a class="link-fresh" id="submitAnotherLink" href="javascript:void(0)" role="link">Submit another response</a>
+    </div>
+  </div>
+
+  <div class="stats-overlay" id="testStats">
+    Mock Form Ready | Submissions: <span id="subCount">0</span>
+  </div>
+
+  <script>
+    // In-page mock interactions for manual or automated verification
+    let totalSubmissions = 0;
+
+    // Radio handling
+    document.querySelectorAll('[role="radio"]').forEach(radio => {
+      radio.addEventListener('click', () => {
+        const group = radio.closest('[role="radiogroup"]');
+        if (!group) return;
+        group.querySelectorAll('[role="radio"]').forEach(r => r.setAttribute('aria-checked', 'false'));
+        radio.setAttribute('aria-checked', 'true');
+      });
+    });
+
+    // Checkbox handling
+    document.querySelectorAll('[role="checkbox"]').forEach(chk => {
+      chk.addEventListener('click', () => {
+        const current = chk.getAttribute('aria-checked') === 'true';
+        chk.setAttribute('aria-checked', (!current).toString());
+      });
+    });
+
+    // Submit handling
+    const submitBtn = document.getElementById('submitBtn');
+    const formView = document.getElementById('formView');
+    const confirmationView = document.getElementById('confirmationView');
+    const subCountEl = document.getElementById('subCount');
+    const submitAnotherLink = document.getElementById('submitAnotherLink');
+
+    function submitForm() {
+      totalSubmissions++;
+      subCountEl.textContent = totalSubmissions;
+      formView.style.display = 'none';
+      confirmationView.style.display = 'block';
+    }
+
+    submitBtn.addEventListener('click', submitForm);
+
+    function resetForm() {
+      document.querySelectorAll('[role="radio"]').forEach(r => r.setAttribute('aria-checked', 'false'));
+      document.querySelectorAll('[role="checkbox"]').forEach(c => c.setAttribute('aria-checked', 'false'));
+      document.querySelectorAll('input[type="text"], textarea').forEach(i => i.value = '');
+      document.querySelectorAll('select').forEach(s => s.selectedIndex = 0);
+      confirmationView.style.display = 'none';
+      formView.style.display = 'block';
+    }
+
+    submitAnotherLink.addEventListener('click', resetForm);
+    document.getElementById('clearBtn').addEventListener('click', resetForm);
+  </script>
+</body>
+</html>

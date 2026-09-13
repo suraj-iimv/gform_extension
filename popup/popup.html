@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Google Form Auto-Filler</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="popup-container">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="brand">
+        <div class="brand-icon">⚡</div>
+        <div class="brand-text">
+          <h1>Form Auto-Filler</h1>
+          <span class="badge-v3">Manifest V3</span>
+        </div>
+      </div>
+      <div class="status-indicator" id="statusPill">
+        <span class="status-dot"></span>
+        <span class="status-label" id="statusBadgeText">READY</span>
+      </div>
+    </header>
+
+    <!-- Active Form Banner -->
+    <section class="form-banner" id="formBanner">
+      <div class="banner-info">
+        <span class="banner-icon" id="formIcon">📋</span>
+        <div class="banner-details">
+          <div class="form-name" id="formNameText">Scanning active tab...</div>
+          <div class="form-id-meta" id="formIdMeta">ID: detecting...</div>
+        </div>
+      </div>
+      <button class="btn-icon" id="btnRefreshForm" title="Re-scan Form">🔄</button>
+    </section>
+
+    <!-- Mode Navigation Tabs -->
+    <nav class="mode-tabs">
+      <button class="tab-btn active" id="tabBulkBtn">Bulk Mode</button>
+      <button class="tab-btn" id="tabQuickBtn">Quick Test</button>
+      <button class="tab-btn" id="tabSettingsBtn">Configuration</button>
+    </nav>
+
+    <!-- Main Content Panels -->
+    <main class="panels-container">
+      
+      <!-- Panel 1: Bulk Run View -->
+      <section class="tab-panel active" id="panelBulk">
+        <!-- Live Run Card -->
+        <div class="run-card" id="runCard">
+          <div class="run-header">
+            <span class="run-title" id="runStateTitle">Bulk Automation</span>
+            <span class="run-counter" id="runCounter">0 / 0</span>
+          </div>
+
+          <div class="progress-track">
+            <div class="progress-fill" id="progressBar" style="width: 0%;"></div>
+          </div>
+
+          <div class="status-message-box" id="statusMessageBox">
+            <span class="live-pulse" id="livePulse"></span>
+            <span class="status-message-text" id="statusMessageText">Configure settings below and click Start Bulk Run.</span>
+          </div>
+
+          <!-- Active Control Buttons -->
+          <div class="run-controls" id="runControls">
+            <button class="btn btn-primary" id="btnStartBulk">
+              <span class="btn-icon-symbol">▶</span> Start Bulk Run
+            </button>
+            <button class="btn btn-secondary" id="btnPauseBulk" style="display: none;">
+              <span class="btn-icon-symbol">⏸</span> Pause
+            </button>
+            <button class="btn btn-warning" id="btnResumeBulk" style="display: none;">
+              <span class="btn-icon-symbol">▶</span> Resume
+            </button>
+            <button class="btn btn-danger" id="btnStopBulk" style="display: none;">
+              <span class="btn-icon-symbol">⏹</span> Stop
+            </button>
+          </div>
+        </div>
+
+        <!-- Bulk Run Parameters -->
+        <div class="settings-grid">
+          <div class="setting-item">
+            <label for="inputTargetCount">Target Submissions</label>
+            <div class="input-with-stepper">
+              <input type="number" id="inputTargetCount" min="1" max="1000" value="5">
+              <span class="input-unit">runs</span>
+            </div>
+            <span class="help-text">1 to 1,000 automatic submissions</span>
+          </div>
+
+          <div class="setting-item">
+            <label for="inputDelaySec">Delay Between Runs</label>
+            <div class="input-with-stepper">
+              <input type="number" id="inputDelaySec" min="0" max="120" value="3">
+              <span class="input-unit">sec</span>
+            </div>
+            <span class="help-text">Wait time before fresh form</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Panel 2: Quick Test Fill View -->
+      <section class="tab-panel" id="panelQuick">
+        <div class="quick-card">
+          <h3>1-Click Test Fill</h3>
+          <p>Fills all form fields on the active tab using your current weighted distributions without submitting. Perfect for verifying answer ratios.</p>
+          <div class="quick-actions">
+            <button class="btn btn-primary" id="btnQuickFill">
+              <span class="btn-icon-symbol">✏️</span> Test Fill Current Form
+            </button>
+          </div>
+          <div class="quick-results" id="quickResultsBox" style="display: none;">
+            <h4>Filled Results Preview:</h4>
+            <div class="results-list" id="quickResultsList"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Panel 3: Question Weights & Configuration -->
+      <section class="tab-panel" id="panelSettings">
+        <div class="weights-header">
+          <div class="weights-title">
+            <h3>Question Weight Settings</h3>
+            <span class="auto-save-pill" id="autoSaveIndicator">Auto-saved</span>
+          </div>
+          <div class="weights-bulk-actions">
+            <button class="btn-small" id="btnEqualizeAll" title="Equalize weights for all questions">Equalize All</button>
+            <button class="btn-small" id="btnResetWeights" title="Reset all to defaults">Reset</button>
+          </div>
+        </div>
+
+        <!-- Dynamic Questions List -->
+        <div class="questions-accordion" id="questionsContainer">
+          <div class="loading-state" id="questionsLoading">
+            <div class="spinner"></div>
+            <span>Detecting questions on active form...</span>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- Error Banner -->
+    <div class="error-banner" id="errorBanner" style="display: none;">
+      <span class="error-icon">⚠️</span>
+      <span class="error-text" id="errorText">Error message here</span>
+      <button class="error-dismiss" id="btnDismissError">✕</button>
+    </div>
+
+    <!-- Footer -->
+    <footer class="app-footer">
+      <span class="footer-note" id="footerNote">Independent background runner active</span>
+      <span class="footer-tag">v1.0.0</span>
+    </footer>
+  </div>
+
+  <script type="module" src="popup.js"></script>
+</body>
+</html>
